@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "seatflow",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && cd /d C:\\Users\\spttw10536\\Desktop\\seatflow && npm run dev"],
+      "port": 5175
+    }
+  ]
+}

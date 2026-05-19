@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Voya 倒數日曆</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;background:#020c1e;font-family:system-ui,-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;overflow:hidden}
+
+    /* ── Outer shell ─────────────────────────────────────── */
+    #app{
+      display:flex;flex-direction:column;
+      width:100%;height:100%;
+    }
+
+    /* ── Title bar (drag handle for desktop window) ──────── */
+    #titlebar{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 14px 8px;
+      background:rgba(5,15,40,0.96);
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      -webkit-app-region:drag;
+      flex-shrink:0;
+      cursor:default;
+    }
+    #titlebar .brand{display:flex;align-items:center;gap:7px;color:#fff;font-size:13px;font-weight:700}
+    #titlebar .badge{background:rgba(59,130,246,0.85);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px}
+    #titlebar .ts{font-size:10px;color:rgba(255,255,255,0.28)}
+
+    /* ── Scrollable card list ─────────────────────────────── */
+    #cards{
+      flex:1;overflow-y:auto;padding:10px 10px 12px;
+      display:flex;flex-direction:column;gap:9px;
+    }
+    #cards::-webkit-scrollbar{width:4px}
+    #cards::-webkit-scrollbar-track{background:transparent}
+    #cards::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px}
+
+    /* ── Individual card ──────────────────────────────────── */
+    .card{
+      position:relative;border-radius:12px;overflow:hidden;
+      padding:14px 15px;
+      display:flex;align-items:center;justify-content:space-between;
+      min-height:76px;
+      box-shadow:0 3px 10px rgba(0,0,0,0.25);
+    }
+    .card-left{flex:1;min-width:0;position:relative;z-index:1}
+    .card-title{
+      font-size:13px;font-weight:700;color:#1a2e4a;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      max-width:175px;line-height:1.3;
+    }
+    .card-date{font-size:11px;color:#3b5778;margin-top:3px}
+    .card-tag{
+      display:inline-block;margin-top:5px;
+      background:rgba(239,68,68,0.14);color:#dc2626;
+      font-size:10px;font-weight:700;
+      border-radius:6px;padding:1px 6px;
+      border:1px solid rgba(239,68,68,0.28);
+    }
+    .card-right{position:relative;z-index:1;text-align:right;flex-shrink:0;margin-left:8px}
+    .card-days{font-size:40px;font-weight:900;color:#1a2e4a;line-height:1}
+    .card-unit{font-size:14px;font-weight:700;color:#3b5778;margin-left:2px}
+    .card-word{font-size:20px;font-weight:900;color:#1a2e4a;line-height:1}
+    .card-rocket{font-size:26px;line-height:1}
+
+    /* ── Cloud decoration ─────────────────────────────────── */
+    .cloud{
+      position:absolute;bottom:6px;right:6px;
+      width:80px;opacity:0.20;pointer-events:none;
+    }
+
+    /* ── Empty state ──────────────────────────────────────── */
+    #empty{
+      display:none;flex-direction:column;align-items:center;justify-content:center;
+      flex:1;gap:10px;color:rgba(255,255,255,0.25);padding:30px 20px;
+      text-align:center;
+    }
+    #empty .icon{font-size:36px}
+    #empty .line1{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5)}
+    #empty .line2{font-size:11px}
+
+    /* ── Sky gradient palette ─────────────────────────────── */
+    .sky0{background:linear-gradient(135deg,#74b9e8 0%,#a8d8f0 45%,#deeef8 100%)}
+    .sky1{background:linear-gradient(135deg,#5fa8d3 0%,#90c8e8 50%,#cce8f5 100%)}
+    .sky2{background:linear-gradient(135deg,#82bfe6 0%,#b5d8f0 50%,#e0f0fa 100%)}
+    .sky3{background:linear-gradient(135deg,#6aaddb 0%,#9ecbeb 50%,#d4eaf8 100%)}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="titlebar">
+    <div class="brand">
+      <span>✈️</span>
+      <span>Voya 即將出發</span>
+      <span class="badge" id="count">0</span>
+    </div>
+    <span class="ts" id="ts"></span>
+  </div>
+  <div id="cards"></div>
+  <div id="empty">
+    <div class="icon">✈️</div>
+    <div class="line1">創建你的日程吧！</div>
+    <div class="line2">在 Voya 新增即將出發的行程</div>
+  </div>
+</div>
+
+<script>
+const SKIES = ['sky0','sky1','sky2','sky3']
+
+function cloudSvg(){
+  return `<svg class="cloud" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="40" rx="80" ry="22" fill="white"/>
+    <ellipse cx="72"  cy="30" rx="44" ry="26" fill="white"/>
+    <ellipse cx="120" cy="28" rx="36" ry="24" fill="white"/>
+    <ellipse cx="148" cy="38" rx="30" ry="18" fill="white"/>
+  </svg>`
+}
+
+function daysUntil(isoDate){
+  const today = new Date(); today.setHours(0,0,0,0)
+  const target = new Date(isoDate); target.setHours(0,0,0,0)
+  const d = Math.round((target - today) / 86400000)
+  return d >= 0 ? d : null
+}
+
+async function loadTrips(){
+  // Try file API first (works when Vite dev server is running — shared with Electron)
+  try{
+    const res = await fetch('/api/trips',{signal:AbortSignal.timeout(800)})
+    if(res.ok){
+      const data = await res.json()
+      if(Array.isArray(data)) return data
+    }
+  }catch(e){}
+  // Fallback: localStorage (works in browser / PWA)
+  try{
+    const raw = localStorage.getItem('voya-trips')
+    if(raw){
+      const parsed = JSON.parse(raw)
+      return parsed?.state?.trips ?? parsed?.trips ?? []
+    }
+  }catch(e){}
+  return []
+}
+
+async function render(){
+  const trips = await loadTrips()
+  const cardsEl = document.getElementById('cards')
+  const emptyEl = document.getElementById('empty')
+  const countEl = document.getElementById('count')
+  const tsEl    = document.getElementById('ts')
+  cardsEl.innerHTML = ''
+
+  const now = new Date()
+  tsEl.textContent = now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})
+
+  const today = new Date().toISOString().slice(0,10)
+  const future = trips
+    .filter(t => t.startDate > today)
+    .sort((a,b) => a.startDate.localeCompare(b.startDate))
+
+  countEl.textContent = future.length
+
+  if(future.length === 0){
+    cardsEl.style.display = 'none'
+    emptyEl.style.display = 'flex'
+    return
+  }
+  cardsEl.style.display = 'flex'
+  emptyEl.style.display = 'none'
+
+  future.forEach((trip, idx) => {
+    const d = daysUntil(trip.startDate)
+    if(d === null) return
+    const flag = trip.coverEmoji || '✈️'
+    const sky  = SKIES[idx % SKIES.length]
+
+    let rightHtml
+    if(d === 0){
+      rightHtml = `<div class="card-rocket">✈️</div>`
+    } else if(d === 1){
+      rightHtml = `<div class="card-word">明天</div>`
+    } else {
+      rightHtml = `<div><span class="card-days">${d}</span><span class="card-unit">天</span></div>`
+    }
+
+    const tagHtml = d === 0
+      ? `<span class="card-tag">今天出發！</span>`
+      : ''
+
+    const card = document.createElement('div')
+    card.className = `card ${sky}`
+    card.innerHTML = `
+      ${cloudSvg()}
+      <div class="card-left">
+        <div class="card-title">${flag} ${escHtml(trip.title)}</div>
+        <div class="card-date">${trip.startDate}</div>
+        ${tagHtml}
+      </div>
+      <div class="card-right">${rightHtml}</div>
+    `
+    cardsEl.appendChild(card)
+  })
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+// Initial render + poll every 30 s
+render()
+setInterval(render, 30000)
+
+// Also re-render when localStorage changes (browser/PWA mode)
+window.addEventListener('storage', e => { if(e.key === 'voya-trips') render() })
+</script>
+</body>
+</html>
