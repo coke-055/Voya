@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voya - 我的旅遊足跡</title>
+    <link rel="manifest" href="/Voya/manifest.json" />
+    <link rel="icon" href="/Voya/icon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#3b82f6" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/Voya/assets/index-BlPwQnOL.js"></script>
+    <link rel="stylesheet" crossorigin href="/Voya/assets/index-B2gBUUjt.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {})
+      }
+    </script>
+  </body>
+</html>

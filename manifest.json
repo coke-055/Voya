@@ -1,0 +1,27 @@
+{
+  "name": "Voya 旅遊足跡",
+  "short_name": "Voya",
+  "description": "記錄你走過的每一片土地",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020810",
+  "theme_color": "#3b82f6",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "倒數日曆",
+      "short_name": "倒數",
+      "description": "查看即將出發行程倒數",
+      "url": "/widget.html",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
