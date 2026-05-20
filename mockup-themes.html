@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voya Animation Theme Preview</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #e8e8e8;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  padding: 40px 24px;
+  font-family: -apple-system, sans-serif;
+  flex-wrap: wrap;
+}
+.col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.label { font-size: 13px; font-weight: 700; color: #444; letter-spacing: 0.05em; text-transform: uppercase; }
+
+canvas { border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); display: block; }
+</style>
+</head>
+<body>
+
+<div class="col">
+  <div class="label">🌑 Dark（現有）</div>
+  <canvas id="dark" width="270" height="480"></canvas>
+</div>
+
+<div class="col">
+  <div class="label">☀️ Light（新）</div>
+  <canvas id="light" width="270" height="480"></canvas>
+</div>
+
+<script>
+const W = 270, H = 480
+
+// ── Shared data ──────────────────────────────────────────────────────────────
+const route = [
+  { x: 135, y: 390 },  // Taiwan (home)
+  { x: 155, y: 220 },  // Tokyo
+]
+const cityCard = { name: 'Tokyo', country: '🇯🇵 Japan', km: '+2,166 km' }
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function drawStarsDark(ctx) {
+  const rng = (seed) => { let s = seed; return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff } }
+  const rand = rng(0xdeadbeef)
+  ctx.save()
+  for (let i = 0; i < 120; i++) {
+    const x = rand() * W, y = rand() * H
+    const r = rand() * 1.2 + 0.3
+    const a = rand() * 0.7 + 0.3
+    ctx.globalAlpha = a
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+  }
+  ctx.globalAlpha = 1
+  ctx.restore()
+}
+
+function drawRouteArc(ctx, from, to, color, width = 2) {
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.lineWidth = width
+  ctx.setLineDash([6, 4])
+  ctx.lineDashOffset = 0
+  ctx.beginPath()
+  const mx = (from.x + to.x) / 2 - 30
+  const my = (from.y + to.y) / 2 - 40
+  ctx.moveTo(from.x, from.y)
+  ctx.quadraticCurveTo(mx, my, to.x, to.y)
+  ctx.stroke()
+  ctx.setLineDash([])
+  ctx.restore()
+}
+
+function drawPin(ctx, x, y, color = '#60a5fa') {
+  ctx.save()
+  ctx.fillStyle = color
+  ctx.shadowColor = color
+  ctx.shadowBlur = 8
+  ctx.beginPath()
+  ctx.arc(x, y - 10, 7, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.moveTo(x - 5, y - 10)
+  ctx.lineTo(x + 5, y - 10)
+  ctx.lineTo(x, y)
+  ctx.closePath(); ctx.fill()
+  ctx.restore()
+}
+
+function drawPlaneDark(ctx, x, y) {
+  ctx.save()
+  ctx.translate(x, y); ctx.rotate(-Math.PI / 3)
+  ctx.fillStyle = '#dbeafe'; ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 12
+  ctx.scale(0.9, 0.9)
+  ctx.beginPath()
+  ctx.moveTo(22,0); ctx.bezierCurveTo(20,-3.5,2,-4,-18,-3.2)
+  ctx.lineTo(-23,0); ctx.bezierCurveTo(-18,3.2,2,4,20,3.5); ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(5,3.2); ctx.lineTo(-5,3.2); ctx.lineTo(-16,16); ctx.lineTo(-8,16); ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(5,-3.2); ctx.lineTo(-5,-3.2); ctx.lineTo(-16,-16); ctx.lineTo(-8,-16); ctx.closePath(); ctx.fill()
+  ctx.restore()
+}
+
+function drawPlaneLight(ctx, x, y) {
+  ctx.save()
+  ctx.translate(x, y); ctx.rotate(-Math.PI / 3)
+  ctx.fillStyle = '#1a3a5c'; ctx.shadowColor = '#3b7fc4'; ctx.shadowBlur = 8
+  ctx.scale(0.9, 0.9)
+  ctx.beginPath()
+  ctx.moveTo(22,0); ctx.bezierCurveTo(20,-3.5,2,-4,-18,-3.2)
+  ctx.lineTo(-23,0); ctx.bezierCurveTo(-18,3.2,2,4,20,3.5); ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(5,3.2); ctx.lineTo(-5,3.2); ctx.lineTo(-16,16); ctx.lineTo(-8,16); ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(5,-3.2); ctx.lineTo(-5,-3.2); ctx.lineTo(-16,-16); ctx.lineTo(-8,-16); ctx.closePath(); ctx.fill()
+  ctx.restore()
+}
+
+function drawCardDark(ctx) {
+  const cx = 155, cy = 100, cw = 108, ch = 64, r = 8
+  ctx.save()
+  ctx.fillStyle = 'rgba(8,20,50,0.88)'
+  ctx.strokeStyle = 'rgba(96,165,250,0.45)'
+  ctx.lineWidth = 1
+  ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, r); ctx.fill(); ctx.stroke()
+  ctx.font = 'bold 15px system-ui'; ctx.fillStyle = '#fff'; ctx.textBaseline = 'top'; ctx.textAlign = 'left'
+  ctx.fillText('Tokyo', cx + 9, cy + 8)
+  ctx.font = '11px system-ui'; ctx.fillStyle = 'rgba(180,210,250,0.9)'
+  ctx.fillText('🇯🇵 Japan', cx + 9, cy + 29)
+  // badge
+  const bw = 62, bh = 18, bx = cx + cw - bw - 8, by = cy + 8
+  ctx.fillStyle = 'rgba(59,130,246,0.85)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 9); ctx.fill()
+  ctx.font = 'bold 10px system-ui'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText('+2,166 km', bx + bw / 2, by + bh / 2)
+  ctx.restore()
+}
+
+function drawCardLight(ctx) {
+  const cx = 155, cy = 100, cw = 108, ch = 64, r = 8
+  ctx.save()
+  // Card: white with soft shadow
+  ctx.shadowColor = 'rgba(80,120,180,0.18)'; ctx.shadowBlur = 12
+  ctx.fillStyle = 'rgba(255,255,255,0.95)'
+  ctx.strokeStyle = 'rgba(100,160,220,0.3)'
+  ctx.lineWidth = 1
+  ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, r); ctx.fill(); ctx.stroke()
+  ctx.shadowBlur = 0
+  ctx.font = 'bold 15px system-ui'; ctx.fillStyle = '#1a2e4a'; ctx.textBaseline = 'top'; ctx.textAlign = 'left'
+  ctx.fillText('Tokyo', cx + 9, cy + 8)
+  ctx.font = '11px system-ui'; ctx.fillStyle = '#5a7a9a'
+  ctx.fillText('🇯🇵 Japan', cx + 9, cy + 29)
+  // badge
+  const bw = 62, bh = 18, bx = cx + cw - bw - 8, by = cy + 8
+  ctx.fillStyle = 'rgba(59,130,246,0.90)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 9); ctx.fill()
+  ctx.font = 'bold 10px system-ui'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText('+2,166 km', bx + bw / 2, by + bh / 2)
+  ctx.restore()
+}
+
+function drawBottomDark(ctx) {
+  ctx.save()
+  const barH = 48
+  const g = ctx.createLinearGradient(0, H - barH, 0, H)
+  g.addColorStop(0, 'rgba(5,12,35,0.90)'); g.addColorStop(1, 'rgba(2,8,25,0.98)')
+  ctx.fillStyle = g; ctx.fillRect(0, H - barH, W, barH)
+  ctx.font = 'bold 14px system-ui'; ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'
+  ctx.fillText('My 2025', 16, H - barH / 2)
+  ctx.font = '11px system-ui'; ctx.fillStyle = 'rgba(160,190,240,0.9)'; ctx.textAlign = 'right'
+  ctx.fillText('✈️ 2趟  🗺️ 4k km', W - 16, H - barH / 2)
+  ctx.restore()
+}
+
+function drawBottomLight(ctx) {
+  ctx.save()
+  const barH = 48
+  const g = ctx.createLinearGradient(0, H - barH, 0, H)
+  g.addColorStop(0, 'rgba(240,248,255,0.85)'); g.addColorStop(1, 'rgba(220,238,252,0.97)')
+  ctx.fillStyle = g; ctx.fillRect(0, H - barH, W, barH)
+  // subtle top border
+  ctx.strokeStyle = 'rgba(100,160,220,0.2)'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(0, H - barH); ctx.lineTo(W, H - barH); ctx.stroke()
+  ctx.font = 'bold 14px system-ui'; ctx.fillStyle = '#1a3a5c'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'
+  ctx.fillText('My 2025', 16, H - barH / 2)
+  ctx.font = '11px system-ui'; ctx.fillStyle = '#4a6a8a'; ctx.textAlign = 'right'
+  ctx.fillText('✈️ 2趟  🗺️ 4k km', W - 16, H - barH / 2)
+  ctx.restore()
+}
+
+function drawWatermarkDark(ctx) {
+  ctx.save(); ctx.globalAlpha = 0.72
+  ctx.font = 'bold 12px system-ui'; ctx.fillStyle = '#fff'; ctx.textBaseline = 'top'; ctx.textAlign = 'right'
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4
+  ctx.fillText('Voya ✈️', W - 10, 10); ctx.restore()
+}
+
+function drawWatermarkLight(ctx) {
+  ctx.save(); ctx.globalAlpha = 0.65
+  ctx.font = 'bold 12px system-ui'; ctx.fillStyle = '#1a3a5c'; ctx.textBaseline = 'top'; ctx.textAlign = 'right'
+  ctx.shadowColor = 'rgba(255,255,255,0.8)'; ctx.shadowBlur = 4
+  ctx.fillText('Voya ✈️', W - 10, 10); ctx.restore()
+}
+
+// ── DARK THEME ────────────────────────────────────────────────────────────────
+;(function() {
+  const c = document.getElementById('dark')
+  const ctx = c.getContext('2d')
+
+  // Background
+  const bg = ctx.createLinearGradient(0, 0, W, H)
+  bg.addColorStop(0, '#020810'); bg.addColorStop(1, '#040e24')
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
+
+  // Stars
+  drawStarsDark(ctx)
+
+  // Faint map hint (simplified continent shapes as blobs)
+  ctx.save(); ctx.globalAlpha = 0.07
+  ctx.fillStyle = '#4488bb'
+  ctx.beginPath(); ctx.ellipse(80, 200, 55, 40, -0.2, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(180, 240, 35, 55, 0.3, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(135, 300, 28, 20, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+
+  // Route
+  drawRouteArc(ctx, route[0], route[1], 'rgba(96,165,250,0.7)', 1.5)
+
+  // Pins
+  drawPin(ctx, route[0].x, route[0].y + 10, '#60a5fa')
+  drawPin(ctx, route[1].x, route[1].y + 10, '#60a5fa')
+
+  // Plane (mid-route)
+  drawPlaneDark(ctx, 148, 300)
+
+  // City card
+  drawCardDark(ctx)
+
+  // Bottom bar
+  drawBottomDark(ctx)
+  drawWatermarkDark(ctx)
+})()
+
+// ── LIGHT THEME ───────────────────────────────────────────────────────────────
+;(function() {
+  const c = document.getElementById('light')
+  const ctx = c.getContext('2d')
+
+  // Background — soft sky gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H)
+  bg.addColorStop(0,   '#d4eaf8')   // Ice Melt blue
+  bg.addColorStop(0.4, '#edf5fb')   // lighter mid
+  bg.addColorStop(0.75,'#f5f3ee')   // Lemon Icing cream
+  bg.addColorStop(1,   '#ede9e4')   // Peach Dust warm
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
+
+  // Subtle cloud-like blobs
+  ctx.save(); ctx.globalAlpha = 0.22
+  ctx.fillStyle = '#ffffff'
+  ;[[50,110,70,28],[180,160,55,22],[110,280,45,18],[200,340,60,24]].forEach(([x,y,rx,ry]) => {
+    ctx.beginPath(); ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2); ctx.fill()
+  })
+  ctx.restore()
+
+  // Faint map hint
+  ctx.save(); ctx.globalAlpha = 0.12
+  ctx.fillStyle = '#7ab0d0'
+  ctx.beginPath(); ctx.ellipse(80, 200, 55, 40, -0.2, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(180, 240, 35, 55, 0.3, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(135, 300, 28, 20, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+
+  // Route
+  drawRouteArc(ctx, route[0], route[1], 'rgba(42,100,180,0.55)', 2)
+
+  // Pins
+  drawPin(ctx, route[0].x, route[0].y + 10, '#2a64b4')
+  drawPin(ctx, route[1].x, route[1].y + 10, '#2a64b4')
+
+  // Plane
+  drawPlaneLight(ctx, 148, 300)
+
+  // City card
+  drawCardLight(ctx)
+
+  // Bottom bar
+  drawBottomLight(ctx)
+  drawWatermarkLight(ctx)
+})()
+</script>
+</body>
+</html>
