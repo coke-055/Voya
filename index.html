@@ -2,6 +2,15 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      try {
+        var t = JSON.parse(localStorage.getItem('voya-theme') || 'null');
+        var theme = t && t.state && t.state.theme;
+        if (theme === 'dark' || theme == null) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch(e) {}
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Voya - 我的旅遊足跡</title>
     <link rel="manifest" href="/Voya/manifest.json" />
@@ -10,8 +19,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@500;600&family=Caveat:wght@400;500&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/Voya/assets/index-D4xHr_I1.js"></script>
-    <link rel="stylesheet" crossorigin href="/Voya/assets/index-BMdPrIlS.css">
+    <script type="module" crossorigin src="/Voya/assets/index-CPJO4cch.js"></script>
+    <link rel="stylesheet" crossorigin href="/Voya/assets/index-BH4u7oMx.css">
   </head>
   <body>
     <div id="root"></div>
